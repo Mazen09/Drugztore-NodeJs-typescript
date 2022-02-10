@@ -1,0 +1,5 @@
+{
+    "name":"drugztore",
+    "jwtPrivateKey":"",
+    "db": "mongodb://localhost/drugztore"
+}
