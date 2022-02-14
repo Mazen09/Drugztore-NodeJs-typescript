@@ -1,5 +1,4 @@
 const Joi = require("joi");
-import mongoose from "mongoose";
 import config from "config";
 import jwt from "jsonwebtoken";
 import { Model, Schema, model } from "mongoose";
