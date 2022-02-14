@@ -3,6 +3,7 @@ import winston from 'winston';
 import { applyCofigurations } from './startup/config';
 import { setupDB } from './startup/db';
 import { startLogger } from './startup/logging';
+import { setupRoutes } from './startup/routes';
 import { setupValidations } from './startup/validations';
 
 
@@ -10,6 +11,7 @@ const app: Application = express();
 
 startLogger();
 applyCofigurations();
+setupRoutes(app);
 setupDB();
 setupValidations();
 
