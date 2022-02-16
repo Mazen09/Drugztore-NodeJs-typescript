@@ -6,7 +6,7 @@ interface ICategory {
 }
 
 interface CategoryModel extends Model<ICategory> {
-  lookup(email: string): Promise<any>;
+  lookup(name: string): Promise<any>;
 }
 
 const categorySchema = new Schema<ICategory, CategoryModel>({
