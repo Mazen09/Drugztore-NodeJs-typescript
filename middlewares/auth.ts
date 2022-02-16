@@ -12,4 +12,6 @@ export function auth(req: any, res: Response, next: NextFunction) {
   } catch (ex) {
     res.status(400).send("Invalid token");
   }
+
+  next();
 }
