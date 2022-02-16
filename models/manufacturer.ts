@@ -36,7 +36,6 @@ const manufacturerSchema = new Schema<IManufacturer, ManufacturerModel>({
   address: {
     type: String,
     required: true,
-    unique: true,
     minlength: 5,
     maxlength: 255,
   },
@@ -46,7 +45,7 @@ manufacturerSchema.static("lookup", function lookup(email: string) {
   return this.findOne({ email });
 });
 
-export const manufacturer = model<IManufacturer, ManufacturerModel>(
+export const Manufacturer = model<IManufacturer, ManufacturerModel>(
   "Manufacturer",
   manufacturerSchema
 );
