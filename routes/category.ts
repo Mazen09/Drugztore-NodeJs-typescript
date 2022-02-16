@@ -22,9 +22,7 @@ router.get("/:id", validateObjectId, async (req, res) => {
 });
 
 router.post("/", validate(validateCategory), auth, async (req, res) => {
-  console.log("entered");
   let category = new Category({ name: req.body.name });
-  console.log("category: ", category);
   await category.save();
   res.send(category);
 });

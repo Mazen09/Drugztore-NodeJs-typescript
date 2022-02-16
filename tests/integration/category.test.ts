@@ -32,8 +32,8 @@ describe("api/categories", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.length).toBe(2);
-      expect(res.body.some((g: any) => g.name === "category 1")).toBeTruthy();
-      expect(res.body.some((g: any) => g.name === "category 2")).toBeTruthy();
+      expect(res.body.some((g: any) => g.name == "category 1")).toBeTruthy();
+      expect(res.body.some((g: any) => g.name == "category 2")).toBeTruthy();
     });
   });
 
