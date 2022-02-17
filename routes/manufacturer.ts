@@ -1,6 +1,60 @@
 import express from "express";
 import { validate } from "../middlewares/validate";
-import { manufacturer, validateManufacturer } from "../models/manufacturer";
-import _ from 'lodash';
+import { Manufacturer, validateManufacturer } from "../models/manufacturer";
+import _ from "lodash";
+import { validateObjectId } from "../middlewares/validateObjectId";
+import { auth } from "../middlewares/auth";
+import { admin } from "../middlewares/admin";
 
 export const router = express.Router();
+
+router.get("/", async (req, res) => {
+  const manufactureres = await Manufacturer.find().sort("name");
+  res.send(manufactureres);
+});
+
+router.get("/:id", validateObjectId, async (req, res) => {
+  const manufacturer = await Manufacturer.findById(req.params.id);
+  if (!manufacturer)
+    res.status(404).send("The manufacturer with given id was not found");
+  else res.send(manufacturer);
+});
+
+router.post("/", validate(validateManufacturer), auth, async (req, res) => {
+  let manufacturer = new Manufacturer(
+    _.pick(req.body, ["name", "email", "mobile", "address"])
+  );
+  await manufacturer.save();
+  res.send(manufacturer);
+});
+
+router.put(
+  "/:id",
+  validate(validateManufacturer),
+  auth,
+  validateObjectId,
+  async (req, res) => {
+    let manufacturer = await Manufacturer.findByIdAndUpdate(
+      req.params.id,
+      { $set: _.pick(req.body, ["name", "email", "mobile", "address"]) },
+      { new: true }
+    );
+    if (!manufacturer)
+      return res
+        .status(404)
+        .send("The manufacturer with the given ID was not found.");
+
+    res.send(manufacturer);
+  }
+);
+
+router.delete("/:id", auth, admin, validateObjectId, async (req, res) => {
+  const manufacturer = await Manufacturer.findByIdAndRemove(req.params.id);
+
+  if (!manufacturer)
+    return res
+      .status(404)
+      .send("The manufacturer with the given ID was not found.");
+
+  res.send(manufacturer);
+});
