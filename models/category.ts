@@ -9,7 +9,7 @@ interface CategoryModel extends Model<ICategory> {
   lookup(name: string): Promise<any>;
 }
 
-const categorySchema = new Schema<ICategory, CategoryModel>({
+export const categorySchema = new Schema<ICategory, CategoryModel>({
   name: {
     type: String,
     required: true,
