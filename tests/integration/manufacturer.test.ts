@@ -221,4 +221,247 @@ describe(`${endpoint}`, () => {
       expect(res.body).toMatchObject({ name, email, mobile, address });
     });
   });
+
+  // PUT /api/manufactureres/:id
+  // should return 401 if client not logged in
+  // should return 400 if name is less than 5 characters
+  // should return 400 if name is more than 50 characters
+  // should return 400 if mobile is less than 10 characters
+  // should return 400 if mobile is more than 50 characters
+  // should return 400 if mobile is invalid
+  // should return 400 if address is less than 5 characters
+  // should return 400 if address is more than 255 characters
+  // should return 400 if email is less than 5 characters
+  // should return 400 if email is more than 255 characters
+  // should return 400 if email is invalid
+  // should return 404 when id is invalid
+  // should return 404 if manufacturer with the given id was not found
+  // should update the manufacturer if input is valid
+  // should return the updated manufacturer if it is valid
+  describe("PUT /:id", () => {
+    let token: string;
+    let newName: string;
+    let newEmail: string;
+    let newMobile: string;
+    let newAddress: string;
+    let manufacturer: any;
+    let id: any;
+
+    const exec = async () => {
+      return await request(server)
+        .put(`${endpoint}/${id}`)
+        .set("x-auth-token", token)
+        .send({
+          name: newName,
+          email: newEmail,
+          mobile: newMobile,
+          address: newAddress,
+        });
+    };
+
+    beforeEach(async () => {
+      manufacturer = new Manufacturer({
+        name: "name 1",
+        email: "a@b.com",
+        mobile: "1234567890",
+        address: "some address",
+      });
+      await manufacturer.save();
+
+      let user: any = new User();
+      token = user.generateAuthToken();
+      id = manufacturer._id;
+      newName = "updatedName";
+      newEmail = "b@c.com";
+      newMobile = "0987654321";
+      newAddress = "new address";
+    });
+
+    it("should return 401 if client not logged in", async () => {
+      token = "";
+      const res = await exec();
+      expect(res.status).toBe(401);
+    });
+
+    it("should return 400 if name is less than 5 characters", async () => {
+      newName = "m";
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if name is more than 50 characters", async () => {
+      newName = new Array(52).join("a");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if mobile is less than 10 characters", async () => {
+      newMobile = new Array(5).join("1");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if mobile is more than 50 characters", async () => {
+      newMobile = new Array(52).join("1");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if mobile is invalid", async () => {
+      newMobile = new Array(5).join("a");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if address is less than 5 characters", async () => {
+      newAddress = "m";
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if address is more than 255 characters", async () => {
+      newAddress = new Array(257).join("a");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if email is less than 5 characters", async () => {
+      newEmail = new Array(3).join("a");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if email is more than 255 characters", async () => {
+      newEmail = new Array(257).join("a");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if email is invalid", async () => {
+      newEmail = new Array(10).join("a");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 404 when id is invalid", async () => {
+      id = 1;
+      const res = await exec();
+      expect(res.status).toBe(404);
+    });
+
+    it("should return 404 if manufacturer with the given id was not found", async () => {
+      id = new mongoose.Types.ObjectId();
+      const res = await exec();
+      expect(res.status).toBe(404);
+    });
+
+    it("should update the category if input is valid", async () => {
+      await exec();
+
+      const manufacturerInDB = await Manufacturer.findOne({ email: newEmail });
+
+      expect(manufacturerInDB).toMatchObject({
+        name: newName,
+        email: newEmail,
+        mobile: newMobile,
+        address: newAddress,
+      });
+    });
+
+    it("should return the updated category if it is valid", async () => {
+      const res = await exec();
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        name: newName,
+        email: newEmail,
+        mobile: newMobile,
+        address: newAddress,
+      });
+    });
+  });
+
+  // DELETE /api/manufactureres/:id
+  // should return 401 if client not logged in
+  // should return 403 if the user is not an admin
+  // should return 404 if id is invalid
+  // should return 404 if manufacturer with the given id was not found
+  // should delete the manufacturer if input is valid
+  // should return the removed manufacturer
+  describe("DELETE /:id", () => {
+    let token: string;
+    let manufacturer: any;
+    let id: any;
+
+    const exec = async () => {
+      return await request(server)
+        .delete(`${endpoint}/${id}`)
+        .set("x-auth-token", token)
+        .send();
+    };
+
+    beforeEach(async () => {
+      manufacturer = new Manufacturer({
+        name: "man 1",
+        email: "a@b.com",
+        mobile: "1234567890",
+        address: "abcde123",
+      });
+      await manufacturer.save();
+
+      id = manufacturer._id;
+      let user: any = new User({ isAdmin: true });
+      token = user.generateAuthToken();
+    });
+
+    it("should return 401 if client is not logged in", async () => {
+      token = "";
+
+      const res = await exec();
+
+      expect(res.status).toBe(401);
+    });
+
+    it("should return 403 if the user is not an admin", async () => {
+      const user: any = new User({ isAdmin: false });
+      token = user.generateAuthToken();
+
+      const res = await exec();
+
+      expect(res.status).toBe(403);
+    });
+
+    it("should return 404 if id is invalid", async () => {
+      id = 1;
+      const res = await exec();
+      expect(res.status).toBe(404);
+    });
+
+    it("should return 404 if category with the given id was not found", async () => {
+      id = new mongoose.Types.ObjectId();
+      const res = await exec();
+      expect(res.status).toBe(404);
+    });
+
+    it("should delete the category if input is valid", async () => {
+      await exec();
+
+      const manufacturerInDB = await Manufacturer.findById(id);
+
+      expect(manufacturerInDB).toBeNull();
+    });
+
+    it("should return the removed category", async () => {
+      const res = await exec();
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty("_id", id.toHexString());
+      expect(res.body).toMatchObject({
+        name: "man 1",
+        email: "a@b.com",
+        mobile: "1234567890",
+        address: "abcde123",
+      });
+    });
+  });
 });
