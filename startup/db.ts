@@ -39,13 +39,18 @@ export const upload = multer({
   },
 });
 
+export let gfs: Grid.Grid;
+export let gridfsBucket: any;
+
 export function setupDB() {
-  let gfs: any;
   mongoose
     .connect(db)
     .then((conn: any) => {
       gfs = Grid(conn.connections[0].db, mongoose.mongo);
       gfs.collection("uploads");
+      gridfsBucket = new mongoose.mongo.GridFSBucket(conn.connections[0].db, {
+        bucketName: "uploads",
+      });
     })
     .then(() => winston.info(`connected to ${db}.`));
 }
