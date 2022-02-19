@@ -36,6 +36,7 @@ const manufacturerSchema = new Schema<IManufacturer, ManufacturerModel>({
   address: {
     type: String,
     required: true,
+    unique: true,
     minlength: 5,
     maxlength: 255,
   },
