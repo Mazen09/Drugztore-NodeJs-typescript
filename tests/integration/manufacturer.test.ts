@@ -22,7 +22,7 @@ describe(`${endpoint}`, () => {
   // GET /api/manufactureres
   //   should return all manufactureres
   describe("GET /", () => {
-    it("should return all categories", async () => {
+    it("should return all manufactureres", async () => {
       await Manufacturer.collection.insertMany([
         {
           name: "man 1",
@@ -34,7 +34,7 @@ describe(`${endpoint}`, () => {
           name: "man 2",
           email: "a@c.com",
           mobile: "1234567891",
-          address: "abcde123",
+          address: "abcde1223",
         },
       ]);
 
@@ -57,7 +57,7 @@ describe(`${endpoint}`, () => {
             g.name == "man 2" &&
             g.email == "a@c.com" &&
             g.mobile == "1234567891" &&
-            g.address == "abcde123"
+            g.address == "abcde1223"
         )
       ).toBeTruthy();
     });
@@ -66,7 +66,7 @@ describe(`${endpoint}`, () => {
   // GET /api/manufactureres/:id
   // should return 404 when id is invalid
   // should return 404 when id is not in collection
-  // should return category with given id
+  // should return manufacturer with given id
   describe("GET /:id", () => {
     it("should return 404 if id is invalid", async () => {
       const res = await request(s).get(`${endpoint}/1`);
@@ -80,19 +80,19 @@ describe(`${endpoint}`, () => {
       expect(res.status).toBe(404);
     });
 
-    it("should return category with given id", async () => {
-      const category = await Manufacturer.collection.insertOne({
+    it("should return manufacturer with given id", async () => {
+      const manufacturer = await Manufacturer.collection.insertOne({
         name: "man 1",
         email: "a@b.com",
         mobile: "1234567890",
         address: "abcde123",
       });
 
-      const res = await request(s).get(`${endpoint}/${category.insertedId}`);
+      const res = await request(s).get(`${endpoint}/${manufacturer.insertedId}`);
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({
-        _id: category.insertedId,
+        _id: manufacturer.insertedId,
         name: "man 1",
         email: "a@b.com",
         mobile: "1234567890",
@@ -355,7 +355,7 @@ describe(`${endpoint}`, () => {
       expect(res.status).toBe(404);
     });
 
-    it("should update the category if input is valid", async () => {
+    it("should update the manufacturer if input is valid", async () => {
       await exec();
 
       const manufacturerInDB = await Manufacturer.findOne({ email: newEmail });
@@ -368,7 +368,7 @@ describe(`${endpoint}`, () => {
       });
     });
 
-    it("should return the updated category if it is valid", async () => {
+    it("should return the updated manufacturer if it is valid", async () => {
       const res = await exec();
 
       expect(res.status).toBe(200);
@@ -437,13 +437,13 @@ describe(`${endpoint}`, () => {
       expect(res.status).toBe(404);
     });
 
-    it("should return 404 if category with the given id was not found", async () => {
+    it("should return 404 if manufacturer with the given id was not found", async () => {
       id = new mongoose.Types.ObjectId();
       const res = await exec();
       expect(res.status).toBe(404);
     });
 
-    it("should delete the category if input is valid", async () => {
+    it("should delete the manufacturer if input is valid", async () => {
       await exec();
 
       const manufacturerInDB = await Manufacturer.findById(id);
@@ -451,7 +451,7 @@ describe(`${endpoint}`, () => {
       expect(manufacturerInDB).toBeNull();
     });
 
-    it("should return the removed category", async () => {
+    it("should return the removed manufacturer", async () => {
       const res = await exec();
 
       expect(res.status).toBe(200);
