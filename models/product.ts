@@ -25,21 +25,23 @@ const productSchema = new Schema<IProduct, ProductModel>({
     minlength: 5,
     maxlength: 50,
   },
-  manufacturer: new Schema({
-    name: {
-      type: String,
-      required: true,
-      minlength: 5,
-      maxlength: 50,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      minlength: 5,
-      maxlength: 255,
-    },
-  }),
+  manufacturer: {
+    type: new Schema({
+      name: {
+        type: String,
+        required: true,
+        minlength: 5,
+        maxlength: 50,
+      },
+      email: {
+        type: String,
+        required: true,
+        minlength: 5,
+        maxlength: 255,
+      },
+    }),
+    required: true,
+  },
   numberInStock: {
     type: Number,
     required: true,
@@ -79,7 +81,7 @@ const productSchema = new Schema<IProduct, ProductModel>({
   },
   images: [
     new Schema({
-      fileName: {
+      filename: {
         type: String,
         required: true,
       },
@@ -97,17 +99,17 @@ export function validateProduct(product: any) {
   const schema = Joi.object({
     name: Joi.string().min(5).max(50).required(),
     manufacturerId: Joi.ObjectId().required(),
-    numberInStock: Joi.number().min(0).max(500).required(),
     categoryId: Joi.ObjectId().required(),
-    rate: Joi.number().min(0).max(5),
+    numberInStock: Joi.number().min(0).max(500).required(),
     price: Joi.number().min(0).max(10000).required(),
     description: Joi.string().min(50).max(500).required(),
-    dateAdded: Joi.date(),
     activeIngredients: Joi.array()
       .required()
       .min(2)
       .max(10)
       .items(Joi.string().min(5).max(50)),
+    rate: Joi.number().min(0).max(5),
+    images: Joi.array().items(Joi.ObjectId()),
   });
 
   return schema.validate(product);
