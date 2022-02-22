@@ -16,7 +16,16 @@ interface IProduct {
   dateAdded: Date;
 }
 
-interface ProductModel extends Model<IProduct> {}
+interface ProductModel extends Model<IProduct> {
+  getImage(): any;
+}
+
+export const imageSchema = new Schema({
+  filename: {
+    type: String,
+    required: true,
+  },
+});
 
 const productSchema = new Schema<IProduct, ProductModel>({
   name: {
@@ -79,19 +88,17 @@ const productSchema = new Schema<IProduct, ProductModel>({
     minlength: 50,
     maxlength: 500,
   },
-  images: [
-    new Schema({
-      filename: {
-        type: String,
-        required: true,
-      },
-    }),
-  ],
+  images: [imageSchema],
   dateAdded: {
     type: Date,
     default: Date.now,
   },
 });
+
+productSchema.method("getImage", function getImage() {
+  return this.images?.length > 0 ? this.images[0] : undefined;
+});
+
 
 export const Product = model<IProduct, ProductModel>("Product", productSchema);
 
