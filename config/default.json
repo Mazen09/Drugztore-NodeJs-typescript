@@ -1,5 +1,5 @@
 {
     "name":"drugztore",
     "jwtPrivateKey":"",
-    "db": "mongodb://localhost/drugztore"
+    "db": "mongodb://LPALXY0661:27017,LPALXY0661:27018,LPALXY0661:27019/drugztore?replicaSet=rs"
 }

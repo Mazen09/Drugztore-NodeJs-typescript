@@ -70,7 +70,7 @@ describe(endpoint, () => {
           activeIngredients: ["aaaaa", "bbbbb"],
         },
       ];
-      const product = await Product.collection.insertMany(ps);
+      await Product.collection.insertMany(ps);
 
       const res = await request(s).get(`${endpoint}`);
 
