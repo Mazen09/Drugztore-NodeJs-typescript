@@ -6,6 +6,7 @@ import { router as categories } from "../routes/category";
 import { router as manufacturer } from "../routes/manufacturer";
 import { router as products } from "../routes/product";
 import { router as uploads } from "../routes/uploads";
+import { router as orders } from "../routes/order";
 
 const methodOverride = require("method-override");
 
@@ -22,4 +23,5 @@ export function setupRoutes(app: Application) {
   app.use("/api/manufactureres", manufacturer);
   app.use("/api/uploads", uploads);
   app.use("/api/products", products);
+  app.use("/api/orders", orders);
 }
