@@ -9,7 +9,7 @@ interface IManufacturer {
 }
 
 interface ManufacturerModel extends Model<IManufacturer> {
-  lookup(email: string): Promise<any>;
+  checkForUniqueFields(obj: any): string | undefined;
 }
 
 const manufacturerSchema = new Schema<IManufacturer, ManufacturerModel>({
@@ -42,9 +42,23 @@ const manufacturerSchema = new Schema<IManufacturer, ManufacturerModel>({
   },
 });
 
-manufacturerSchema.static("lookup", function lookup(email: string) {
-  return this.findOne({ email });
-});
+manufacturerSchema.static(
+  "checkForUniqueFields",
+  async function checkForUniqueFields(obj: any) {
+    if (obj.email) {
+      let m = await this.findOne({ email: obj.email });
+      if (m) return "Manufacturer with same email already exist";
+    }
+    if (obj.mobile) {
+      let m = await this.findOne({ mobile: obj.mobile });
+      if (m) return "Manufacturer with same mobile already exist";
+    }
+    if (obj.address) {
+      let m = await this.findOne({ address: obj.address });
+      if (m) return "Manufacturer with same address already exist";
+    }
+  }
+);
 
 export const Manufacturer = model<IManufacturer, ManufacturerModel>(
   "Manufacturer",

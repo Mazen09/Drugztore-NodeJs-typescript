@@ -21,6 +21,11 @@ router.get("/:id", validateObjectId, async (req, res) => {
 });
 
 router.post("/", validate(validateManufacturer), auth, async (req, res) => {
+  const message = await Manufacturer.checkForUniqueFields(
+    _.pick(req.body, ["email", "mobile", "address"])
+  );
+  if (message) return res.status(400).send(message);
+
   let manufacturer = new Manufacturer(
     _.pick(req.body, ["name", "email", "mobile", "address"])
   );
@@ -34,6 +39,10 @@ router.put(
   auth,
   validateObjectId,
   async (req, res) => {
+    const message = await Manufacturer.checkForUniqueFields(
+      _.pick(req.body, ["email", "mobile", "address"])
+    );
+    if (message) return res.status(400).send(message);
     let manufacturer = await Manufacturer.findByIdAndUpdate(
       req.params.id,
       { $set: _.pick(req.body, ["name", "email", "mobile", "address"]) },
