@@ -15,3 +15,4 @@ steps to run
 - https://docs.mongodb.com/manual/replication/
 - https://stackoverflow.com/questions/51461952/mongodb-v4-0-transaction-mongoerror-transaction-numbers-are-only-allowed-on-a
 - https://www.npmjs.com/package/run-rs
+- https://mongoosejs.com/docs/transactions.html

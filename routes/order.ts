@@ -84,25 +84,58 @@ router.post("/", auth, validate(validateOrder), async (req, res) => {
     writeConcern: { w: "majority" },
   };
 
-  try {
-    await session.withTransaction(async () => {
-      // decrement stock
-      const list = <any[]>order.items;
-      for (let i = 0; i < list.length; i++) {
-        await Product.findByIdAndUpdate(list[i].product._id, {
-          $inc: { numberInStock: -list[i].amount },
-        }, { session: session});
-      }
-      // save order
-      await order.save({ session: session});
+  session.startTransaction();
 
-      res.send(order);
-      session.endSession();
-    }, transactionOptions);
+  try {
+    // decrement stock
+    const list = <any[]>order.items;
+    for (let i = 0; i < list.length; i++) {
+      await Product.findByIdAndUpdate(
+        list[i].product._id,
+        {
+          $inc: { numberInStock: -list[i].amount },
+        },
+        { session: session }
+      );
+    }
+    // save order
+    await order.save({ session: session });
+
+    res.send(order);
+    await session.commitTransaction();
+    await session.endSession();
   } catch (e) {
     res.status(500).send("something failed");
+    await session.abortTransaction();
+    await session.endSession();
     throw e;
   }
+
+  // try {
+  //   await session.withTransaction(async () => {
+  //     // decrement stock
+  //     const list = <any[]>order.items;
+  //     for (let i = 0; i < list.length; i++) {
+  //       await Product.findByIdAndUpdate(
+  //         list[i].product._id,
+  //         {
+  //           $inc: { numberInStock: -list[i].amount },
+  //         },
+  //         { session: session }
+  //       );
+  //     }
+  //     // save order
+  //     await order.save({ session: session });
+
+  //     res.send(order);
+  //     session.commitTransaction();
+  //     session.endSession();
+  //   }, transactionOptions);
+  // } catch (e) {
+  //   res.status(500).send("something failed");
+  //   session.abortTransaction();
+  //   throw e;
+  // }
 });
 
 router.put(
