@@ -2,7 +2,7 @@
 a restful api endpoints for an online drug store using Node.Js with typescript
 
 steps to run
-- run-rs -v 5.0.6 (the latest mongodb version) --shell
+- npm run replica [in separate terminal and leave it running, it creates replicaset for mongoDb to enable transactions]
 - npm run build
 - npm start
 
