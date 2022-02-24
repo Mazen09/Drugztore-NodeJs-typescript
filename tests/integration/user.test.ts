@@ -1,22 +1,11 @@
-// POST /api/users
-// should return 400 if name is less than 5 characters
-// should return 400 if name is more than 50 characters
-// should return 400 if email is less than 5 characters
-// should return 400 if email is more than 255 characters
-// should return 400 if email is invalid
-// should return 400 if password is less than 8 characters
-// should return 400 if password is more than 255 characters
-// should return 400 if user already registered
-// should return 200 is user is valid
-// should return header x-auth-token if user is valid
-// should return user object [_id, name, email] if user is valid
-
 import { Server } from "http";
 import { server } from "../../index";
 import { User } from "../../models/user";
 import request from "supertest";
 
-describe("api/users", () => {
+jest.useFakeTimers();
+
+xdescribe("api/users", () => {
   let s: Server;
   let email: string;
   let name: string;

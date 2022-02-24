@@ -7,6 +7,8 @@ import request from "supertest";
 import mongoose from "mongoose";
 import { User } from "../../models/user";
 
+jest.useFakeTimers();
+
 const endpoint: string = "/api/products";
 
 describe(endpoint, () => {
@@ -16,6 +18,7 @@ describe(endpoint, () => {
 
   beforeEach(async () => {
     s = server;
+
     category = new Category({ name: "category 1" });
     manufacturer = new Manufacturer({
       name: "name 1",
@@ -34,7 +37,7 @@ describe(endpoint, () => {
     await Manufacturer.remove({});
   });
 
-  describe("GET /", () => {
+  xdescribe("GET /", () => {
     it("should return all products", async () => {
       const ps = [
         {
@@ -81,7 +84,7 @@ describe(endpoint, () => {
     });
   });
 
-  describe("GET /:id", () => {
+  xdescribe("GET /:id", () => {
     it("should return 404 if id is invalid", async () => {
       const res = await request(s).get(`${endpoint}/1`);
       expect(res.status).toBe(404);
@@ -121,7 +124,7 @@ describe(endpoint, () => {
     });
   });
 
-  describe("POST /", () => {
+  xdescribe("POST /", () => {
     let name: any;
     let manufacturerId: any;
     let categoryId: any;
@@ -377,7 +380,7 @@ describe(endpoint, () => {
     });
   });
 
-  describe("PUT /:id", () => {
+  xdescribe("PUT /:id", () => {
     let name: any;
     let manufacturerId: any;
     let categoryId: any;
@@ -684,7 +687,7 @@ describe(endpoint, () => {
     });
   });
 
-  describe("DETETE /:id", () => {
+  xdescribe("DETETE /:id", () => {
     let token: string;
     let product: any;
     let id: any;

@@ -7,6 +7,8 @@ import { User } from "../../models/user";
 
 const endpoint: string = "/api/manufactureres";
 
+jest.useFakeTimers("legacy");
+
 describe(`${endpoint}`, () => {
   let s: Server;
 
@@ -19,8 +21,6 @@ describe(`${endpoint}`, () => {
     await Manufacturer.remove({});
   });
 
-  // GET /api/manufactureres
-  //   should return all manufactureres
   describe("GET /", () => {
     it("should return all manufactureres", async () => {
       await Manufacturer.collection.insertMany([
@@ -63,10 +63,6 @@ describe(`${endpoint}`, () => {
     });
   });
 
-  // GET /api/manufactureres/:id
-  // should return 404 when id is invalid
-  // should return 404 when id is not in collection
-  // should return manufacturer with given id
   describe("GET /:id", () => {
     it("should return 404 if id is invalid", async () => {
       const res = await request(s).get(`${endpoint}/1`);
@@ -88,7 +84,9 @@ describe(`${endpoint}`, () => {
         address: "abcde123",
       });
 
-      const res = await request(s).get(`${endpoint}/${manufacturer.insertedId}`);
+      const res = await request(s).get(
+        `${endpoint}/${manufacturer.insertedId}`
+      );
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({
@@ -101,25 +99,11 @@ describe(`${endpoint}`, () => {
     });
   });
 
-  // POST /api/manufactureres
-  // should return 401 if client not logged in
-  // should return 400 if name is less than 5 characters
-  // should return 400 if name is more than 50 characters
-  // should return 400 if mobile is less than 10 characters
-  // should return 400 if mobile is more than 50 characters
-  // should return 400 if mobile is invalid
-  // should return 400 if address is less than 5 characters
-  // should return 400 if address is more than 255 characters
-  // should return 400 if email is less than 5 characters
-  // should return 400 if email is more than 255 characters
-  // should return 400 if email is invalid
-  // should save the manufacturer if it is valid
-  // should return the manufacturer if it is valid
   describe("POST /", () => {
-    let name: string;
-    let email: string;
-    let mobile: string;
-    let address: string;
+    let name: any;
+    let email: any;
+    let mobile: any;
+    let address: any;
     let token: string;
 
     const exec = async () => {
@@ -144,6 +128,12 @@ describe(`${endpoint}`, () => {
       expect(res.status).toBe(401);
     });
 
+    it("should return 400 if name is undefined", async () => {
+      name = undefined;
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
     it("should return 400 if name is less than 5 characters", async () => {
       name = "m";
       const res = await exec();
@@ -152,6 +142,12 @@ describe(`${endpoint}`, () => {
 
     it("should return 400 if name is more than 50 characters", async () => {
       name = new Array(52).join("a");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if mobile is undefined", async () => {
+      mobile = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
@@ -168,8 +164,25 @@ describe(`${endpoint}`, () => {
       expect(res.status).toBe(400);
     });
 
+    it("should return 400 if mobile is not unique", async () => {
+      await Manufacturer.collection.insertOne({
+        name: "man 1",
+        email: "z@z.com",
+        mobile: mobile,
+        address: "unique address",
+      });
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
     it("should return 400 if mobile is invalid", async () => {
       mobile = new Array(5).join("a");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if address is undefined", async () => {
+      address = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
@@ -182,6 +195,23 @@ describe(`${endpoint}`, () => {
 
     it("should return 400 if address is more than 255 characters", async () => {
       address = new Array(257).join("a");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if address is not unique", async () => {
+      await Manufacturer.collection.insertOne({
+        name: "man 1",
+        email: "z@z.com",
+        mobile: "1234567899",
+        address: address,
+      });
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if email is undefined", async () => {
+      email = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
@@ -204,6 +234,18 @@ describe(`${endpoint}`, () => {
       expect(res.status).toBe(400);
     });
 
+    it("should return 400 if email is not unique", async () => {
+      await Manufacturer.collection.insertOne({
+        name: "man 1",
+        email: email,
+        mobile: "1234567899",
+        address: "unique address",
+      });
+
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
     it("should save the manufacturer if it is valid", async () => {
       await exec();
 
@@ -222,28 +264,12 @@ describe(`${endpoint}`, () => {
     });
   });
 
-  // PUT /api/manufactureres/:id
-  // should return 401 if client not logged in
-  // should return 400 if name is less than 5 characters
-  // should return 400 if name is more than 50 characters
-  // should return 400 if mobile is less than 10 characters
-  // should return 400 if mobile is more than 50 characters
-  // should return 400 if mobile is invalid
-  // should return 400 if address is less than 5 characters
-  // should return 400 if address is more than 255 characters
-  // should return 400 if email is less than 5 characters
-  // should return 400 if email is more than 255 characters
-  // should return 400 if email is invalid
-  // should return 404 when id is invalid
-  // should return 404 if manufacturer with the given id was not found
-  // should update the manufacturer if input is valid
-  // should return the updated manufacturer if it is valid
   describe("PUT /:id", () => {
     let token: string;
-    let newName: string;
-    let newEmail: string;
-    let newMobile: string;
-    let newAddress: string;
+    let newName: any;
+    let newEmail: any;
+    let newMobile: any;
+    let newAddress: any;
     let manufacturer: any;
     let id: any;
 
@@ -283,6 +309,12 @@ describe(`${endpoint}`, () => {
       expect(res.status).toBe(401);
     });
 
+    it("should return 400 if name is undefined", async () => {
+      newName = undefined;
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
     it("should return 400 if name is less than 5 characters", async () => {
       newName = "m";
       const res = await exec();
@@ -291,6 +323,12 @@ describe(`${endpoint}`, () => {
 
     it("should return 400 if name is more than 50 characters", async () => {
       newName = new Array(52).join("a");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if mobile is undefined", async () => {
+      newMobile = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
@@ -313,6 +351,27 @@ describe(`${endpoint}`, () => {
       expect(res.status).toBe(400);
     });
 
+    it("should return 400 if mobile is not unique", async () => {
+      const oldMobile = "0000000000";
+      await Manufacturer.collection.insertOne({
+        name: "old manufacturer",
+        email: "b@b.com",
+        mobile: oldMobile,
+        address: "abcde000",
+      });
+      newMobile = oldMobile;
+
+      const res = await exec();
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if address is undefined", async () => {
+      newAddress = undefined;
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
     it("should return 400 if address is less than 5 characters", async () => {
       newAddress = "m";
       const res = await exec();
@@ -321,6 +380,27 @@ describe(`${endpoint}`, () => {
 
     it("should return 400 if address is more than 255 characters", async () => {
       newAddress = new Array(257).join("a");
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if address is not unique", async () => {
+      const oldAddress = "old address";
+      await Manufacturer.collection.insertOne({
+        name: "old manufacturer",
+        email: "b@b.com",
+        mobile: "1235214785",
+        address: oldAddress,
+      });
+      newAddress = oldAddress;
+
+      const res = await exec();
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if email is undefined", async () => {
+      newEmail = new Array(3).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
@@ -340,6 +420,21 @@ describe(`${endpoint}`, () => {
     it("should return 400 if email is invalid", async () => {
       newEmail = new Array(10).join("a");
       const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if email is not unique", async () => {
+      const oldEmail = "old@email.com";
+      await Manufacturer.collection.insertOne({
+        name: "old manufacturer",
+        email: oldEmail,
+        mobile: "1235214785",
+        address: "old address",
+      });
+      newEmail = oldEmail;
+
+      const res = await exec();
+
       expect(res.status).toBe(400);
     });
 
@@ -381,13 +476,6 @@ describe(`${endpoint}`, () => {
     });
   });
 
-  // DELETE /api/manufactureres/:id
-  // should return 401 if client not logged in
-  // should return 403 if the user is not an admin
-  // should return 404 if id is invalid
-  // should return 404 if manufacturer with the given id was not found
-  // should delete the manufacturer if input is valid
-  // should return the removed manufacturer
   describe("DELETE /:id", () => {
     let token: string;
     let manufacturer: any;

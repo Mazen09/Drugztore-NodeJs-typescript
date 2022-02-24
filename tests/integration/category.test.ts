@@ -5,6 +5,8 @@ import request from "supertest";
 import mongoose from "mongoose";
 import { User } from "../../models/user";
 
+jest.useFakeTimers();
+
 const endpoint: string = "/api/categories";
 
 describe("api/categories", () => {
@@ -19,8 +21,6 @@ describe("api/categories", () => {
     await Category.remove({});
   });
 
-  // GET /api/categories
-  // should return all categories
   describe("GET /", () => {
     it("should return all categories", async () => {
       await Category.collection.insertMany([
@@ -37,10 +37,14 @@ describe("api/categories", () => {
     });
   });
 
-  // GET /api/categories/:id
-  // should return 404 when id is not in collection
-  // should return category with given id
   describe("GET /:id", () => {
+    it("should return 404 when id is invalid", async () => {
+      const res = await request(s).get(
+        `${endpoint}/${1}`
+      );
+      expect(res.status).toBe(404);
+    });
+    
     it("should return 404 when id is not in collection", async () => {
       const res = await request(s).get(
         `${endpoint}/${new mongoose.Types.ObjectId()}`
@@ -63,14 +67,8 @@ describe("api/categories", () => {
     });
   });
 
-  // POST /api/categories
-  // should return 401 if client not logged in
-  // should return 400 if category name is less than 5 characters
-  // should return 400 if category name is more than 50 characters
-  // should save the category if it is valid
-  // should return the category if it is valid
   describe("POST /", () => {
-    let name: string;
+    let name: any;
     let token: string;
 
     const exec = async () => {
@@ -92,6 +90,12 @@ describe("api/categories", () => {
       expect(res.status).toBe(401);
     });
 
+    it("should return 400 if category name is undefined", async () => {
+      name = undefined;
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+    
     it("should return 400 if category name is less than 5 characters", async () => {
       name = "c";
       const res = await exec();
@@ -122,17 +126,9 @@ describe("api/categories", () => {
     });
   });
 
-  // PUT /api/categories/:id
-  // should return 401 if client not logged in
-  // should return 400 if category name is less than 5 characters
-  // should return 400 if category name is more than 50 characters
-  // should return 404 if id is invalid
-  // should return 404 if category with the given id was not found
-  // should update the category if input is valid
-  // should return the updated category if it is valid
   describe("PUT /:id", () => {
     let token: string;
-    let newName: string;
+    let newName: any;
     let category;
     let id: any;
 
@@ -159,6 +155,12 @@ describe("api/categories", () => {
       expect(res.status).toBe(401);
     });
 
+    it("should return 400 if category name is undefined", async () => {
+      newName = undefined;
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+    
     it("should return 400 if category name is less than 5 characters", async () => {
       newName = "a";
       const res = await exec();
@@ -200,13 +202,6 @@ describe("api/categories", () => {
     });
   });
 
-  // DELETE /api/categories/:id
-  // should return 401 if client is not logged in
-  // should return 403 if the user is not an admin
-  // should return 404 if id is invalid
-  // should return 404 if no category with the given id was found
-  // should delete the category if input is valid
-  // should return the removed category
   describe("DETETE /:id", () => {
     let token: string;
     let category: any;

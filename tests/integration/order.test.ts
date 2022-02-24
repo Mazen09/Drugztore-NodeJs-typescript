@@ -10,6 +10,8 @@ import { Order } from "../../models/order";
 
 const endpoint: string = "/api/orders";
 
+jest.useFakeTimers();
+
 describe(endpoint, () => {
   let s: Server;
   let category: any;
@@ -25,6 +27,7 @@ describe(endpoint, () => {
 
   beforeEach(async () => {
     s = server;
+
     category = new Category({ name: "category 1" });
     manufacturer = new Manufacturer({
       name: "name 1",
@@ -95,7 +98,7 @@ describe(endpoint, () => {
     await Manufacturer.remove({});
   });
 
-  describe("GET /", () => {
+  xdescribe("GET /", () => {
     const exec = async () => {
       return request(s).get(endpoint).set("x-auth-token", token1).send();
     };
