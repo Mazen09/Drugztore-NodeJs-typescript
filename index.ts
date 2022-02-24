@@ -15,6 +15,7 @@ setupDB();
 setupValidations();
 
 var port = process.env.PORT || 3000;
+if (process.env.NODE_ENV == "test") port = 0;
 
 export const server = app.listen(port, () =>
   winston.info(`Listening on port ${port}`)

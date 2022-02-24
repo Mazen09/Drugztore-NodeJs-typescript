@@ -7,8 +7,9 @@
     "start": "node dist/index.js",
     "dev": "nodemon ./dist/index.js",
     "build": "tsc -p .",
-    "test": "jest --watchAll --verbose --coverage --maxWorkers=1",
-    "replica":"run-rs -v 5.0.6"
+    "test": "jest --watchAll --verbose --coverage",
+    "replica":"run-rs -v 5.0.6",
+    "seed": "node dist/seeding/populate.js"
   },
   "keywords": [],
   "author": "",

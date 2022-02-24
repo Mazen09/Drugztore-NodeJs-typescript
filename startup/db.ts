@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { ConnectOptions } from "mongoose";
 import winston from "winston";
 import config from "config";
 import Grid from "gridfs-stream";
@@ -44,7 +44,10 @@ export let gridfsBucket: any;
 
 export function setupDB() {
   mongoose
-    .connect(db)
+    .connect(db, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    } as ConnectOptions)
     .then((conn: any) => {
       gfs = Grid(conn.connections[0].db, mongoose.mongo);
       gfs.collection("uploads");
