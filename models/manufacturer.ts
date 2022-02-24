@@ -9,7 +9,7 @@ interface IManufacturer {
 }
 
 interface ManufacturerModel extends Model<IManufacturer> {
-  checkForUniqueFields(obj: any): string | undefined;
+  checkForUniqueFields(obj: any, id?: any): string | undefined;
 }
 
 const manufacturerSchema = new Schema<IManufacturer, ManufacturerModel>({
@@ -44,18 +44,21 @@ const manufacturerSchema = new Schema<IManufacturer, ManufacturerModel>({
 
 manufacturerSchema.static(
   "checkForUniqueFields",
-  async function checkForUniqueFields(obj: any) {
+  async function checkForUniqueFields(obj: any, id?: any) {
     if (obj.email) {
-      let m = await this.findOne({ email: obj.email });
-      if (m) return "Manufacturer with same email already exist";
+      let m = await this.find({ email: obj.email });
+      if (m.length > 0 && id && m[0]._id != id)
+        return "Manufacturer with same email already exist";
     }
     if (obj.mobile) {
-      let m = await this.findOne({ mobile: obj.mobile });
-      if (m) return "Manufacturer with same mobile already exist";
+      let m = await this.find({ mobile: obj.mobile });
+      if (m.length > 0 && id && m[0]._id != id)
+        return "Manufacturer with same mobile already exist";
     }
     if (obj.address) {
-      let m = await this.findOne({ address: obj.address });
-      if (m) return "Manufacturer with same address already exist";
+      let m = await this.find({ address: obj.address });
+      if (m.length > 0 && id && m[0]._id != id)
+        return "Manufacturer with same address already exist";
     }
   }
 );
