@@ -4,10 +4,11 @@ import { Manufacturer } from "../../models/manufacturer";
 import request from "supertest";
 import mongoose from "mongoose";
 import { User } from "../../models/user";
-
-const endpoint: string = "/api/manufactureres";
+import { seed_manufactureres } from "../../seeding/data";
 
 jest.useFakeTimers("legacy");
+
+const endpoint: string = "/api/manufactureres";
 
 describe(`${endpoint}`, () => {
   let s: Server;
@@ -18,48 +19,22 @@ describe(`${endpoint}`, () => {
 
   afterEach(async () => {
     await s.close();
-    await Manufacturer.remove({});
+    await Manufacturer.deleteMany({});
   });
 
   describe("GET /", () => {
     it("should return all manufactureres", async () => {
       await Manufacturer.collection.insertMany([
-        {
-          name: "man 1",
-          email: "a@b.com",
-          mobile: "1234567890",
-          address: "abcde123",
-        },
-        {
-          name: "man 2",
-          email: "a@c.com",
-          mobile: "1234567891",
-          address: "abcde1223",
-        },
+        seed_manufactureres[0],
+        seed_manufactureres[1],
       ]);
 
       const res = await request(s).get(`${endpoint}`);
 
       expect(res.status).toBe(200);
       expect(res.body.length).toBe(2);
-      expect(
-        res.body.some(
-          (g: any) =>
-            g.name == "man 1" &&
-            g.email == "a@b.com" &&
-            g.mobile == "1234567890" &&
-            g.address == "abcde123"
-        )
-      ).toBeTruthy();
-      expect(
-        res.body.some(
-          (g: any) =>
-            g.name == "man 2" &&
-            g.email == "a@c.com" &&
-            g.mobile == "1234567891" &&
-            g.address == "abcde1223"
-        )
-      ).toBeTruthy();
+      expect(res.body[0]).toMatchObject(seed_manufactureres[0]);
+      expect(res.body[1]).toMatchObject(seed_manufactureres[1]);
     });
   });
 
@@ -77,48 +52,35 @@ describe(`${endpoint}`, () => {
     });
 
     it("should return manufacturer with given id", async () => {
-      const manufacturer = await Manufacturer.collection.insertOne({
-        name: "man 1",
-        email: "a@b.com",
-        mobile: "1234567890",
-        address: "abcde123",
-      });
+      await Manufacturer.collection.insertOne(seed_manufactureres[0]);
 
       const res = await request(s).get(
-        `${endpoint}/${manufacturer.insertedId}`
+        `${endpoint}/${seed_manufactureres[0]._id}`
       );
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({
-        _id: manufacturer.insertedId,
-        name: "man 1",
-        email: "a@b.com",
-        mobile: "1234567890",
-        address: "abcde123",
-      });
+      expect(res.body).toMatchObject(seed_manufactureres[0]);
     });
   });
 
   describe("POST /", () => {
-    let name: any;
-    let email: any;
-    let mobile: any;
-    let address: any;
+    let manufacturer: any;
+    let oldManufacturer: any;
     let token: string;
 
     const exec = async () => {
-      return await request(s)
-        .post(endpoint)
-        .set("x-auth-token", token)
-        .send({ name, email, mobile, address });
+      return request(s).post(endpoint).set("x-auth-token", token).send({
+        name: manufacturer.name,
+        email: manufacturer.email,
+        mobile: manufacturer.mobile,
+        address: manufacturer.address,
+      });
     };
 
     beforeEach(() => {
+      manufacturer = { ...seed_manufactureres[0] };
+      oldManufacturer = { ...seed_manufactureres[1] };
       const user: any = new User();
-      name = "man 1";
-      email = "a@b.com";
-      mobile = "1234567890";
-      address = "abcdef";
       token = user.generateAuthToken();
     });
 
@@ -129,118 +91,111 @@ describe(`${endpoint}`, () => {
     });
 
     it("should return 400 if name is undefined", async () => {
-      name = undefined;
+      manufacturer.name = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if name is less than 5 characters", async () => {
-      name = "m";
+      manufacturer.name = "m";
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if name is more than 50 characters", async () => {
-      name = new Array(52).join("a");
+      manufacturer.name = new Array(52).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if mobile is undefined", async () => {
-      mobile = undefined;
+      manufacturer.mobile = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if mobile is less than 10 characters", async () => {
-      mobile = new Array(5).join("1");
+      manufacturer.mobile = new Array(5).join("1");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if mobile is more than 50 characters", async () => {
-      mobile = new Array(52).join("1");
+      manufacturer.mobile = new Array(52).join("1");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
-    it("should return 400 if mobile is not unique", async () => {
-      await Manufacturer.collection.insertOne({
-        name: "man 1",
-        email: "z@z.com",
-        mobile: mobile,
-        address: "unique address",
-      });
+    xit("should return 400 if mobile is not unique", async () => {
+      await Manufacturer.collection.insertOne(oldManufacturer);
+      manufacturer.mobile = oldManufacturer.mobile;
+
       const res = await exec();
+
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if mobile is invalid", async () => {
-      mobile = new Array(5).join("a");
+      manufacturer.mobile = new Array(5).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if address is undefined", async () => {
-      address = undefined;
+      manufacturer.address = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if address is less than 5 characters", async () => {
-      address = "m";
+      manufacturer.address = "m";
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if address is more than 255 characters", async () => {
-      address = new Array(257).join("a");
+      manufacturer.address = new Array(257).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
-    it("should return 400 if address is not unique", async () => {
-      await Manufacturer.collection.insertOne({
-        name: "man 1",
-        email: "z@z.com",
-        mobile: "1234567899",
-        address: address,
-      });
+    xit("should return 400 if address is not unique", async () => {
+      const oldManufacturer = { ...seed_manufactureres[1] };
+      oldManufacturer.address = manufacturer.address;
+      await Manufacturer.collection.insertOne(oldManufacturer);
+
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if email is undefined", async () => {
-      email = undefined;
+      manufacturer.email = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if email is less than 5 characters", async () => {
-      email = new Array(3).join("a");
+      manufacturer.email = new Array(3).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if email is more than 255 characters", async () => {
-      email = new Array(257).join("a");
+      manufacturer.email = new Array(257).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if email is invalid", async () => {
-      email = new Array(10).join("a");
+      manufacturer.email = new Array(10).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
-    it("should return 400 if email is not unique", async () => {
-      await Manufacturer.collection.insertOne({
-        name: "man 1",
-        email: email,
-        mobile: "1234567899",
-        address: "unique address",
-      });
+    xit("should return 400 if email is not unique", async () => {
+      const oldManufacturer = { ...seed_manufactureres[1] };
+      oldManufacturer.email = manufacturer.email;
+      await Manufacturer.collection.insertOne(oldManufacturer);
 
       const res = await exec();
       expect(res.status).toBe(400);
@@ -249,18 +204,17 @@ describe(`${endpoint}`, () => {
     it("should save the manufacturer if it is valid", async () => {
       await exec();
 
-      const manufacturer = await Manufacturer.findOne({ email });
+      const res = await Manufacturer.findOne({ email: manufacturer.email });
 
-      expect(manufacturer).toBeDefined();
-      expect(manufacturer).toMatchObject({ name, email, mobile, address });
+      expect(res).toBeDefined();
+      expect(res).toMatchObject(manufacturer);
     });
 
     it("should return the manufacturer if it is valid", async () => {
       const res = await exec();
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("_id");
-      expect(res.body).toMatchObject({ name, email, mobile, address });
+      expect(res.body).toMatchObject(manufacturer);
     });
   });
 
@@ -270,11 +224,11 @@ describe(`${endpoint}`, () => {
     let newEmail: any;
     let newMobile: any;
     let newAddress: any;
-    let manufacturer: any;
     let id: any;
+    let oldManufacturer: any;
 
     const exec = async () => {
-      return await request(server)
+      return request(server)
         .put(`${endpoint}/${id}`)
         .set("x-auth-token", token)
         .send({
@@ -286,19 +240,14 @@ describe(`${endpoint}`, () => {
     };
 
     beforeEach(async () => {
-      manufacturer = new Manufacturer({
-        name: "name 1",
-        email: "a@b.com",
-        mobile: "1234567890",
-        address: "some address",
-      });
-      await manufacturer.save();
+      await Manufacturer.collection.insertOne(seed_manufactureres[0]);
+      oldManufacturer = { ...seed_manufactureres[1] };
 
       let user: any = new User();
       token = user.generateAuthToken();
-      id = manufacturer._id;
+      id = seed_manufactureres[0]._id;
       newName = "updatedName";
-      newEmail = "b@c.com";
+      newEmail = "newmail@c.com";
       newMobile = "0987654321";
       newAddress = "new address";
     });
@@ -351,15 +300,9 @@ describe(`${endpoint}`, () => {
       expect(res.status).toBe(400);
     });
 
-    it("should return 400 if mobile is not unique", async () => {
-      const oldMobile = "0000000000";
-      await Manufacturer.collection.insertOne({
-        name: "old manufacturer",
-        email: "b@b.com",
-        mobile: oldMobile,
-        address: "abcde000",
-      });
-      newMobile = oldMobile;
+    xit("should return 400 if mobile is not unique", async () => {
+      await Manufacturer.collection.insertOne(oldManufacturer);
+      newMobile = oldManufacturer.mobile;
 
       const res = await exec();
 
@@ -384,15 +327,9 @@ describe(`${endpoint}`, () => {
       expect(res.status).toBe(400);
     });
 
-    it("should return 400 if address is not unique", async () => {
-      const oldAddress = "old address";
-      await Manufacturer.collection.insertOne({
-        name: "old manufacturer",
-        email: "b@b.com",
-        mobile: "1235214785",
-        address: oldAddress,
-      });
-      newAddress = oldAddress;
+    xit("should return 400 if address is not unique", async () => {
+      await Manufacturer.collection.insertOne(oldManufacturer);
+      newAddress = oldManufacturer.address;
 
       const res = await exec();
 
@@ -400,7 +337,7 @@ describe(`${endpoint}`, () => {
     });
 
     it("should return 400 if email is undefined", async () => {
-      newEmail = new Array(3).join("a");
+      newEmail = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
@@ -423,15 +360,9 @@ describe(`${endpoint}`, () => {
       expect(res.status).toBe(400);
     });
 
-    it("should return 400 if email is not unique", async () => {
-      const oldEmail = "old@email.com";
-      await Manufacturer.collection.insertOne({
-        name: "old manufacturer",
-        email: oldEmail,
-        mobile: "1235214785",
-        address: "old address",
-      });
-      newEmail = oldEmail;
+    xit("should return 400 if email is not unique", async () => {
+      await Manufacturer.collection.insertOne(oldManufacturer);
+      newEmail = oldManufacturer.email;
 
       const res = await exec();
 
@@ -478,7 +409,6 @@ describe(`${endpoint}`, () => {
 
   describe("DELETE /:id", () => {
     let token: string;
-    let manufacturer: any;
     let id: any;
 
     const exec = async () => {
@@ -489,15 +419,9 @@ describe(`${endpoint}`, () => {
     };
 
     beforeEach(async () => {
-      manufacturer = new Manufacturer({
-        name: "man 1",
-        email: "a@b.com",
-        mobile: "1234567890",
-        address: "abcde123",
-      });
-      await manufacturer.save();
+      await Manufacturer.collection.insertOne(seed_manufactureres[0]);
+      id = seed_manufactureres[0]._id;
 
-      id = manufacturer._id;
       let user: any = new User({ isAdmin: true });
       token = user.generateAuthToken();
     });
@@ -543,13 +467,7 @@ describe(`${endpoint}`, () => {
       const res = await exec();
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("_id", id.toHexString());
-      expect(res.body).toMatchObject({
-        name: "man 1",
-        email: "a@b.com",
-        mobile: "1234567890",
-        address: "abcde123",
-      });
+      expect(res.body).toMatchObject(seed_manufactureres[0]);
     });
   });
 });

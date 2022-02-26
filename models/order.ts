@@ -9,10 +9,11 @@ interface IOrder {
   total: number;
   createdDate: Date;
   status: any;
+  updateStatus(status: string): any;
 }
 
 interface OrderModel extends Model<IOrder> {
-  updateStatus(status: string): any;
+  getTotal(items: any[]): number;
 }
 
 const itemSchema = new Schema({
@@ -87,6 +88,14 @@ const orderSchema = new Schema<IOrder, OrderModel>({
 
 orderSchema.method("updateStatus", function updateStatus(status: string) {
   this.status = status;
+});
+
+orderSchema.static("getTotal", function getTotal(items: any[]) {
+  let result = 0;
+  items.forEach((i) => {
+    result += i.amount * i.product.price;
+  });
+  return result;
 });
 
 export const Order = model<IOrder, OrderModel>("Order", orderSchema);

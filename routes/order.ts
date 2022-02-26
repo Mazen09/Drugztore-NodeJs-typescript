@@ -34,8 +34,8 @@ router.get("/:id", auth, validateObjectId, async (req, res) => {
   const order = await Order.findById(req.params.id);
 
   if (!order || (!user.isAdmin && order.user._id != user._id))
-    res.status(404).send("The order with given id was not found");
-  else res.send(order);
+    return res.status(404).send("The order with given id was not found");
+  res.send(order);
 });
 
 router.post("/", auth, validate(validateOrder), async (req, res) => {
@@ -73,7 +73,7 @@ router.post("/", auth, validate(validateOrder), async (req, res) => {
     },
     items: items,
     status: orderStatus.Created,
-    total: getTotal(items),
+    total: Order.getTotal(items),
   });
 
   const session = await mongoose.startSession();
@@ -110,32 +110,6 @@ router.post("/", auth, validate(validateOrder), async (req, res) => {
     await session.endSession();
     throw e;
   }
-
-  // try {
-  //   await session.withTransaction(async () => {
-  //     // decrement stock
-  //     const list = <any[]>order.items;
-  //     for (let i = 0; i < list.length; i++) {
-  //       await Product.findByIdAndUpdate(
-  //         list[i].product._id,
-  //         {
-  //           $inc: { numberInStock: -list[i].amount },
-  //         },
-  //         { session: session }
-  //       );
-  //     }
-  //     // save order
-  //     await order.save({ session: session });
-
-  //     res.send(order);
-  //     session.commitTransaction();
-  //     session.endSession();
-  //   }, transactionOptions);
-  // } catch (e) {
-  //   res.status(500).send("something failed");
-  //   session.abortTransaction();
-  //   throw e;
-  // }
 });
 
 router.put(
@@ -150,7 +124,7 @@ router.put(
     if (!order || (!user.isAdmin && order.user._id != user._id))
       res.status(404).send("The order with given id was not found");
     else {
-      (<any>order).updateStatus(req.body.status);
+      order.updateStatus(req.body.status);
       await order.save();
       res.send(order);
     }
@@ -166,10 +140,3 @@ router.delete("/:id", auth, admin, validateObjectId, async (req, res) => {
   res.send(order);
 });
 
-function getTotal(items: any[]): number {
-  let result = 0;
-  items.forEach((i) => {
-    result += i.amount * i.product.price;
-  });
-  return result;
-}

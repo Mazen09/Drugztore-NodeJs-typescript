@@ -4,8 +4,7 @@ import { Category } from "../../models/category";
 import request from "supertest";
 import mongoose from "mongoose";
 import { User } from "../../models/user";
-
-jest.useFakeTimers();
+import { seed_categories } from "../../seeding/data";
 
 const endpoint: string = "/api/categories";
 
@@ -18,33 +17,31 @@ describe("api/categories", () => {
 
   afterEach(async () => {
     await s.close();
-    await Category.remove({});
+    await Category.deleteMany({});
   });
 
   describe("GET /", () => {
     it("should return all categories", async () => {
       await Category.collection.insertMany([
-        { name: "category 1" },
-        { name: "category 2" },
+        seed_categories[0],
+        seed_categories[1],
       ]);
 
       const res = await request(s).get("/api/categories");
 
       expect(res.status).toBe(200);
       expect(res.body.length).toBe(2);
-      expect(res.body.some((g: any) => g.name == "category 1")).toBeTruthy();
-      expect(res.body.some((g: any) => g.name == "category 2")).toBeTruthy();
+      expect(res.body[0]).toMatchObject(seed_categories[0]);
+      expect(res.body[1]).toMatchObject(seed_categories[1]);
     });
   });
 
   describe("GET /:id", () => {
     it("should return 404 when id is invalid", async () => {
-      const res = await request(s).get(
-        `${endpoint}/${1}`
-      );
+      const res = await request(s).get(`${endpoint}/${1}`);
       expect(res.status).toBe(404);
     });
-    
+
     it("should return 404 when id is not in collection", async () => {
       const res = await request(s).get(
         `${endpoint}/${new mongoose.Types.ObjectId()}`
@@ -53,34 +50,29 @@ describe("api/categories", () => {
     });
 
     it("should return category with given id", async () => {
-      const category = await Category.collection.insertOne({
-        name: "test category",
-      });
+      const category = await Category.collection.insertOne(seed_categories[0]);
 
       const res = await request(s).get(`${endpoint}/${category.insertedId}`);
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({
-        _id: category.insertedId,
-        name: "test category",
-      });
+      expect(res.body).toMatchObject(seed_categories[0]);
     });
   });
 
   describe("POST /", () => {
-    let name: any;
+    let category: any;
     let token: string;
 
     const exec = async () => {
       return await request(s)
         .post(endpoint)
         .set("x-auth-token", token)
-        .send({ name });
+        .send({ name: category.name });
     };
 
     beforeEach(() => {
       const user: any = new User();
-      name = "category 1";
+      category = { ...seed_categories[0] };
       token = user.generateAuthToken();
     });
 
@@ -91,19 +83,19 @@ describe("api/categories", () => {
     });
 
     it("should return 400 if category name is undefined", async () => {
-      name = undefined;
+      category.name = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
-    
+
     it("should return 400 if category name is less than 5 characters", async () => {
-      name = "c";
+      category.name = "c";
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if category name is more than 50 characters", async () => {
-      name = new Array(52).join("a");
+      category.name = new Array(52).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
@@ -111,25 +103,23 @@ describe("api/categories", () => {
     it("should save the category if it is valid", async () => {
       await exec();
 
-      const category = await Category.findOne({ name });
+      const categoryInDB = await Category.findOne({ name: category.name });
 
-      expect(category).toBeDefined();
-      expect(category).toMatchObject({ name });
+      expect(categoryInDB).toBeDefined();
+      expect(categoryInDB).toMatchObject(category);
     });
 
     it("should return the category if it is valid", async () => {
       const res = await exec();
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("_id");
-      expect(res.body).toHaveProperty("name", name);
+      expect(res.body).toMatchObject(category);
     });
   });
 
   describe("PUT /:id", () => {
     let token: string;
     let newName: any;
-    let category;
     let id: any;
 
     const exec = async () => {
@@ -140,13 +130,12 @@ describe("api/categories", () => {
     };
 
     beforeEach(async () => {
-      category = new Category({ name: "category 1" });
-      await category.save();
+      await Category.collection.insertOne(seed_categories[0]);
 
       let user: any = new User();
       token = user.generateAuthToken();
-      id = category._id;
       newName = "updatedName";
+      id = seed_categories[0]._id;
     });
 
     it("should return 401 if client not logged in", async () => {
@@ -160,7 +149,7 @@ describe("api/categories", () => {
       const res = await exec();
       expect(res.status).toBe(400);
     });
-    
+
     it("should return 400 if category name is less than 5 characters", async () => {
       newName = "a";
       const res = await exec();
@@ -204,7 +193,6 @@ describe("api/categories", () => {
 
   describe("DETETE /:id", () => {
     let token: string;
-    let category: any;
     let id: any;
 
     const exec = async () => {
@@ -215,10 +203,9 @@ describe("api/categories", () => {
     };
 
     beforeEach(async () => {
-      category = new Category({ name: "category 1" });
-      await category.save();
+      await Category.collection.insertOne(seed_categories[0]);
 
-      id = category._id;
+      id = seed_categories[0]._id;
       let user: any = new User({ isAdmin: true });
       token = user.generateAuthToken();
     });
@@ -264,8 +251,7 @@ describe("api/categories", () => {
       const res = await exec();
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("_id", category._id.toHexString());
-      expect(res.body).toHaveProperty("name", category.name);
+      expect(res.body).toMatchObject(seed_categories[0]);
     });
   });
 });

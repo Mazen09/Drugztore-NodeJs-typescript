@@ -6,85 +6,44 @@ import { Product } from "../../models/product";
 import request from "supertest";
 import mongoose from "mongoose";
 import { User } from "../../models/user";
+import {
+  seed_categories,
+  seed_manufactureres,
+  seed_products,
+} from "../../seeding/data";
 
-jest.useFakeTimers();
+jest.useFakeTimers("legacy");
 
 const endpoint: string = "/api/products";
 
 describe(endpoint, () => {
   let s: Server;
-  let category: any;
-  let manufacturer: any;
 
   beforeEach(async () => {
     s = server;
-
-    category = new Category({ name: "category 1" });
-    manufacturer = new Manufacturer({
-      name: "name 1",
-      email: "a@b.com",
-      mobile: "1234567890",
-      address: "some address",
-    });
-    await category.save();
-    await manufacturer.save();
   });
 
   afterEach(async () => {
     await s.close();
-    await Product.remove({});
-    await Category.remove({});
-    await Manufacturer.remove({});
+    await Product.deleteMany({});
+    await Manufacturer.deleteMany({});
+    await Category.deleteMany({});
   });
 
-  xdescribe("GET /", () => {
+  describe("GET /", () => {
     it("should return all products", async () => {
-      const ps = [
-        {
-          name: "prduct1",
-          manufacturer: {
-            _id: manufacturer._id,
-            name: manufacturer.name,
-            email: manufacturer.email,
-          },
-          numberInStock: 120,
-          category: {
-            _id: category._id,
-            name: category.name,
-          },
-          price: 100,
-          description: new Array(100).join("a"),
-          activeIngredients: ["aaaaa", "bbbbb"],
-        },
-        {
-          name: "prduct2",
-          manufacturer: {
-            _id: manufacturer._id,
-            name: manufacturer.name,
-            email: manufacturer.email,
-          },
-          numberInStock: 120,
-          category: {
-            _id: category._id,
-            name: category.name,
-          },
-          price: 100,
-          description: new Array(100).join("a"),
-          activeIngredients: ["aaaaa", "bbbbb"],
-        },
-      ];
-      await Product.collection.insertMany(ps);
+      await Product.collection.insertMany([seed_products[0], seed_products[1]]);
 
       const res = await request(s).get(`${endpoint}`);
 
       expect(res.status).toBe(200);
       expect(res.body.length).toBe(2);
-      expect(res.body[0]).toMatchObject(ps[0]);
-      expect(res.body[1]).toMatchObject(ps[1]);
+      expect(res.body[0]).toMatchObject(seed_products[0]);
+      expect(res.body[1]).toMatchObject(seed_products[1]);
     });
   });
 
-  xdescribe("GET /:id", () => {
+  describe("GET /:id", () => {
     it("should return 404 if id is invalid", async () => {
       const res = await request(s).get(`${endpoint}/1`);
       expect(res.status).toBe(404);
@@ -98,71 +57,49 @@ describe(endpoint, () => {
     });
 
     it("should return product with given id", async () => {
-      const p = {
-        name: "prduct1",
-        manufacturer: {
-          _id: manufacturer._id,
-          name: manufacturer.name,
-          email: manufacturer.email,
-        },
-        numberInStock: 120,
-        category: {
-          _id: category._id,
-          name: category.name,
-        },
-        price: 100,
-        description: new Array(100).join("a"),
-        activeIngredients: ["aaaaa", "bbbbb"],
-      };
-      const product = await Product.collection.insertOne(p);
+      await Product.collection.insertOne(seed_products[0]);
 
-      const res = await request(s).get(`${endpoint}/${product.insertedId}`);
+      const res = await request(s).get(`${endpoint}/${seed_products[0]._id}`);
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("_id", product.insertedId.toHexString());
-      expect(res.body).toMatchObject(p);
+      expect(res.body).toMatchObject(seed_products[0]);
     });
   });
 
-  xdescribe("POST /", () => {
-    let name: any;
-    let manufacturerId: any;
-    let categoryId: any;
-    let numberInStock: any;
-    let rate: any;
-    let price: any;
-    let activeIngredients: any;
-    let description: any;
+  describe("POST /", () => {
+    let product: any;
     let images: any;
     let token: any;
 
-    const exec = async () => {
-      return await request(s).post(endpoint).set("x-auth-token", token).send({
-        name,
-        manufacturerId,
-        categoryId,
-        numberInStock,
-        price,
-        description,
-        activeIngredients,
-        rate,
-        images,
-      });
-    };
+    afterEach(async () => {
+      await Product.deleteMany({});
+      await Manufacturer.deleteMany({});
+      await Category.deleteMany({});
+    });
 
-    beforeEach(() => {
-      name = "product1";
-      manufacturerId = manufacturer._id;
-      categoryId = category._id;
-      numberInStock = 100;
-      price = 100;
-      description = new Array(100).join("a");
-      activeIngredients = ["aaaaa", "bbbbb"];
-      rate = 1.5;
+    beforeEach(async () => {
+      product = { ...seed_products[0] };
+      product.manufacturer._id = seed_manufactureres[0]._id;
+      product.category._id = seed_categories[0]._id
+      product.name = "test post product";
       images = [];
       const user: any = new User();
       token = user.generateAuthToken();
     });
+
+    const exec = async () => {
+      return request(s).post(endpoint).set("x-auth-token", token).send({
+        name: product.name,
+        manufacturerId: product.manufacturer._id,
+        categoryId: product.category._id,
+        numberInStock: product.numberInStock,
+        price: product.price,
+        description: product.description,
+        activeIngredients: product.activeIngredients,
+        rate: product.rate,
+        images: images,
+      });
+    };
 
     it("should return 401 if client not logged in", async () => {
       token = "";
@@ -171,145 +108,145 @@ describe(endpoint, () => {
     });
 
     it("should return 400 if name is undefined", async () => {
-      name = undefined;
+      product.name = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if name is less than 5 characters", async () => {
-      name = "m";
+      product.name = "m";
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if name is more than 50 characters", async () => {
-      name = new Array(52).join("a");
+      product.name = new Array(52).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if manufacturerId is undefined", async () => {
-      manufacturerId = undefined;
+      product.manufacturer._id = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if manufacturerId is invalid", async () => {
-      manufacturerId = 1;
+      product.manufacturer._id = 1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 404 if manufacturer doesn't exist", async () => {
-      manufacturerId = new mongoose.Types.ObjectId();
+      product.manufacturer._id = new mongoose.Types.ObjectId();
       const res = await exec();
       expect(res.status).toBe(404);
     });
 
     it("should return 400 if categoryId is undefined", async () => {
-      categoryId = undefined;
+      product.category._id = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if categoryId is invalid", async () => {
-      categoryId = 1;
+      product.category._id = 1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 404 if category doesn't exist", async () => {
-      categoryId = new mongoose.Types.ObjectId();
+      product.category._id = new mongoose.Types.ObjectId();
       const res = await exec();
       expect(res.status).toBe(404);
     });
 
     it("should return 400 if numberInStock is undefined", async () => {
-      numberInStock = undefined;
+      product.numberInStock = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if numberInStock is less than 0", async () => {
-      numberInStock = -1;
+      product.numberInStock = -1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if numberInStock is more than 500", async () => {
-      numberInStock = 501;
+      product.numberInStock = 501;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if price is undefined", async () => {
-      price = undefined;
+      product.price = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if price is less than 0", async () => {
-      price = -1;
+      product.price = -1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if price is more than 10000", async () => {
-      price = 10001;
+      product.price = 10001;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if description is undefined", async () => {
-      description = undefined;
+      product.description = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if description is less than 50 characters", async () => {
-      description = "a";
+      product.description = "a";
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if description is more than 500 characters", async () => {
-      description = new Array(502).join("a");
+      product.description = new Array(502).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if activeIngredients is undefined", async () => {
-      activeIngredients = undefined;
+      product.activeIngredients = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if activeIngredients is empty list", async () => {
-      activeIngredients = [];
+      product.activeIngredients = [];
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if activeIngredient is less than 5 characters", async () => {
-      activeIngredients = ["a"];
+      product.activeIngredients = ["a"];
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if activeIngredient is more than 50 characters", async () => {
-      activeIngredients = [new Array(52).join("a")];
+      product.activeIngredients = [new Array(52).join("a")];
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if rate is less than 0", async () => {
-      rate = -1;
+      product.rate = -1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if rate is more than 5", async () => {
-      rate = 5.1;
+      product.rate = 5.1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
@@ -327,136 +264,78 @@ describe(endpoint, () => {
     });
 
     it("should save the product if it's valid", async () => {
+      await Manufacturer.collection.insertOne(seed_manufactureres[0]);
+      await Category.collection.insertOne(seed_categories[0]);
       await exec();
 
-      const product = await Product.findOne({ name });
+      const res = await Product.findOne({ name: "test post product" });
 
-      expect(product).toBeDefined();
-      expect(product).toMatchObject({
-        name,
-        numberInStock,
-        price,
-        description,
-        activeIngredients,
-        rate,
-        images,
-      });
-      expect(product?.manufacturer).toMatchObject({
-        _id: manufacturer._id,
-        name: manufacturer.name,
-        email: manufacturer.email,
-      });
-
-      expect(product?.category).toMatchObject({
-        _id: category._id,
-        name: category.name,
-      });
+      expect(res).toBeDefined();
+      expect(res).toMatchObject(product);
     });
 
     it("should return saved product", async () => {
+      await Manufacturer.collection.insertOne(seed_manufactureres[0]);
+      await Category.collection.insertOne(seed_categories[0]);
       const res = await exec();
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("_id");
-      expect(res.body).toMatchObject({
-        name,
-        numberInStock,
-        price,
-        description,
-        activeIngredients,
-        rate,
-        images,
-      });
-      expect(res.body?.manufacturer).toMatchObject({
-        _id: manufacturer._id.toHexString(),
-        name: manufacturer.name,
-        email: manufacturer.email,
-      });
-
-      expect(res.body?.category).toMatchObject({
-        _id: category._id.toHexString(),
-        name: category.name,
-      });
+      expect(res.body).toMatchObject(product);
     });
   });
 
-  xdescribe("PUT /:id", () => {
-    let name: any;
-    let manufacturerId: any;
-    let categoryId: any;
-    let numberInStock: any;
-    let rate: any;
-    let price: any;
-    let activeIngredients: any;
-    let description: any;
-    let images: any;
+  describe("PUT /:id", () => {
+    let newName: any;
+    let newNumberInStock: any;
+    let newRate: any;
+    let newPrice: any;
+    let newActiveIngredients: any;
+    let newDescription: any;
+    let newImages: any;
     let token: any;
     let id: any;
     let newManufacturer: any;
-    let newCatgegory: any;
-    let product: any;
+    let newCategory: any;
 
     const exec = async () => {
       return await request(s)
         .put(`${endpoint}/${id}`)
         .set("x-auth-token", token)
         .send({
-          name,
-          manufacturerId,
-          categoryId,
-          numberInStock,
-          price,
-          description,
-          activeIngredients,
-          rate,
-          images,
+          name: newName,
+          manufacturerId: newManufacturer._id,
+          categoryId: newCategory._id,
+          numberInStock: newNumberInStock,
+          price: newPrice,
+          description: newDescription,
+          activeIngredients: newActiveIngredients,
+          rate: newRate,
+          images: newImages,
         });
     };
 
+    afterEach(async () => {
+      await Product.deleteMany({});
+      await Manufacturer.deleteMany({});
+      await Category.deleteMany({});
+    });
+
     beforeEach(async () => {
-      newManufacturer = new Manufacturer({
-        name: "new man 1",
-        email: "y@z.com",
-        mobile: "1234567899",
-        address: "some new address",
-      });
-      newCatgegory = new Category({ name: "new category" });
-      product = new Product({
-        name: "product1",
-        manufacturer: {
-          _id: manufacturer._id,
-          name: manufacturer.name,
-          email: manufacturer.email,
-        },
-        category: {
-          _id: category._id,
-          name: category.name,
-        },
-        numberInStock: 10,
-        price: 100,
-        description: new Array(101).join("a"),
-        activeIngredients: ["aaaaa"],
-        rate: 1,
-        images: [],
-      });
+      await Product.collection.insertOne(seed_products[0]);
+      id = seed_products[0]._id;
 
       let user: any = new User();
-
-      await newManufacturer.save();
-      await newCatgegory.save();
-      await product.save();
-
-      id = product._id;
       token = user.generateAuthToken();
-      name = "new product";
-      manufacturerId = newManufacturer._id;
-      categoryId = newCatgegory._id;
-      numberInStock = 11;
-      price = 120;
-      description = new Array(201).join("b");
-      activeIngredients = ["bbbbb", "ccccc"];
-      rate = 5;
-      images = [];
+
+      newName = "new product";
+      newManufacturer = seed_manufactureres[1];
+      newCategory = seed_categories[1];
+      newNumberInStock = 101;
+      newPrice = 16;
+      newDescription = new Array(201).join("b");
+      newActiveIngredients = ["bbbbb", "ccccc"];
+      newRate = 5;
+      newImages = [];
     });
 
     it("should return 401 if client not logged in", async () => {
@@ -478,218 +357,212 @@ describe(endpoint, () => {
     });
 
     it("should return 400 if name is undefined", async () => {
-      name = undefined;
+      newName = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if name is less than 5 characters", async () => {
-      name = "m";
+      newName = "m";
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if name is more than 50 characters", async () => {
-      name = new Array(52).join("a");
+      newName = new Array(52).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if manufacturerId is undefined", async () => {
-      manufacturerId = undefined;
+      newManufacturer._id = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if manufacturerId is invalid", async () => {
-      manufacturerId = 1;
+      newManufacturer._id = 1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 404 if manufacturer doesn't exist", async () => {
-      manufacturerId = new mongoose.Types.ObjectId();
+      newManufacturer._id = new mongoose.Types.ObjectId();
       const res = await exec();
       expect(res.status).toBe(404);
     });
 
     it("should return 400 if categoryId is undefined", async () => {
-      categoryId = undefined;
+      newCategory._id = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if categoryId is invalid", async () => {
-      categoryId = 1;
+      newCategory._id = 1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 404 if category doesn't exist", async () => {
-      categoryId = new mongoose.Types.ObjectId();
+      newCategory._id = new mongoose.Types.ObjectId();
       const res = await exec();
       expect(res.status).toBe(404);
     });
 
     it("should return 400 if numberInStock is undefined", async () => {
-      numberInStock = undefined;
+      newNumberInStock = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if numberInStock is less than 0", async () => {
-      numberInStock = -1;
+      newNumberInStock = -1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if numberInStock is more than 500", async () => {
-      numberInStock = 501;
+      newNumberInStock = 501;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if price is undefined", async () => {
-      price = undefined;
+      newPrice = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if price is less than 0", async () => {
-      price = -1;
+      newPrice = -1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if price is more than 10000", async () => {
-      price = 10001;
+      newPrice = 10001;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if description is undefined", async () => {
-      description = undefined;
+      newDescription = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if description is less than 50 characters", async () => {
-      description = "a";
+      newDescription = "a";
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if description is more than 500 characters", async () => {
-      description = new Array(502).join("a");
+      newDescription = new Array(502).join("a");
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if activeIngredients is undefined", async () => {
-      activeIngredients = undefined;
+      newActiveIngredients = undefined;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if activeIngredients is empty list", async () => {
-      activeIngredients = [];
+      newActiveIngredients = [];
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if activeIngredient is less than 5 characters", async () => {
-      activeIngredients = ["a"];
+      newActiveIngredients = ["a"];
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if activeIngredient is more than 50 characters", async () => {
-      activeIngredients = [new Array(52).join("a")];
+      newActiveIngredients = [new Array(52).join("a")];
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if rate is less than 0", async () => {
-      rate = -1;
+      newRate = -1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if rate is more than 5", async () => {
-      rate = 5.1;
+      newRate = 5.1;
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 400 if imageId is invalid", async () => {
-      images = [1];
+      newImages = [1];
       const res = await exec();
       expect(res.status).toBe(400);
     });
 
     it("should return 404 if image doesn't exist", async () => {
-      images = [new mongoose.Types.ObjectId()];
+      newImages = [new mongoose.Types.ObjectId()];
       const res = await exec();
       expect(res.status).toBe(404);
     });
 
     it("should update the product if it's valid", async () => {
+      await Manufacturer.collection.insertOne(seed_manufactureres[1]);
+      await Category.collection.insertOne(seed_categories[1]);
       await exec();
 
-      const productInDB = await Product.findOne({ description });
+      const productInDB = await Product.findById(id);
 
       expect(productInDB).toBeDefined();
       expect(productInDB).toMatchObject({
-        name,
-        numberInStock,
-        price,
-        description,
-        activeIngredients,
-        rate,
-        images,
-      });
-      expect(productInDB?.manufacturer).toMatchObject({
-        _id: newManufacturer._id,
-        name: newManufacturer.name,
-        email: newManufacturer.email,
-      });
-
-      expect(productInDB?.category).toMatchObject({
-        _id: newCatgegory._id,
-        name: newCatgegory.name,
+        name: newName,
+        numberInStock: newNumberInStock,
+        price: newPrice,
+        description: newDescription,
+        activeIngredients: newActiveIngredients,
+        rate: newRate,
+        images: newImages,
+        manufacturer: {
+          _id: newManufacturer._id,
+          name: newManufacturer.name,
+          email: newManufacturer.email,
+        },
+        category: newCategory,
       });
     });
 
-    it("should return saved product", async () => {
+    it("should return updated product", async () => {
+      await Manufacturer.collection.insertOne(seed_manufactureres[1]);
+      await Category.collection.insertOne(seed_categories[1]);
       const res = await exec();
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("_id");
       expect(res.body).toMatchObject({
-        name,
-        numberInStock,
-        price,
-        description,
-        activeIngredients,
-        rate,
-        images,
-      });
-      expect(res.body?.manufacturer).toMatchObject({
-        _id: newManufacturer._id,
-        name: newManufacturer.name,
-        email: newManufacturer.email,
-      });
-
-      expect(res.body?.category).toMatchObject({
-        _id: newCatgegory._id,
-        name: newCatgegory.name,
+        name: newName,
+        numberInStock: newNumberInStock,
+        price: newPrice,
+        description: newDescription,
+        activeIngredients: newActiveIngredients,
+        rate: newRate,
+        images: newImages,
+        manufacturer: {
+          _id: newManufacturer._id,
+          name: newManufacturer.name,
+          email: newManufacturer.email,
+        },
+        category: newCategory,
       });
     });
   });
 
-  xdescribe("DETETE /:id", () => {
+  describe("DETETE /:id", () => {
     let token: string;
-    let product: any;
     let id: any;
 
     const exec = async () => {
@@ -700,25 +573,9 @@ describe(endpoint, () => {
     };
 
     beforeEach(async () => {
-      product = new Product({
-        name: "prduct1",
-        manufacturer: {
-          _id: manufacturer._id,
-          name: manufacturer.name,
-          email: manufacturer.email,
-        },
-        numberInStock: 120,
-        category: {
-          _id: category._id,
-          name: category.name,
-        },
-        price: 100,
-        description: new Array(100).join("a"),
-        activeIngredients: ["aaaaa", "bbbbb"],
-      });
-      await product.save();
+      await Product.collection.insertOne(seed_products[0]);
 
-      id = product._id;
+      id = seed_products[0]._id;
       let user: any = new User({ isAdmin: true });
       token = user.generateAuthToken();
     });
@@ -763,25 +620,7 @@ describe(endpoint, () => {
     it("should return the removed product", async () => {
       const res = await exec();
 
-      expect(res.body).toMatchObject({
-        name: "prduct1",
-        numberInStock: 120,
-        price: 100,
-        description: new Array(100).join("a"),
-        activeIngredients: ["aaaaa", "bbbbb"],
-        rate: 0,
-        images: [],
-      });
-      expect(res.body?.manufacturer).toMatchObject({
-        _id: manufacturer._id,
-        name: manufacturer.name,
-        email: manufacturer.email,
-      });
-
-      expect(res.body?.category).toMatchObject({
-        _id: category._id,
-        name: category.name,
-      });
+      expect(res.body).toMatchObject(seed_products[0]);
     });
   });
 });
